@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-03-25 (7)
+
+### Fixed
+- Production API calls: replace hardcoded `localhost:3001` with `NEXT_PUBLIC_API_URL` env var so Render deployment hits the correct backend
+
 ## 2026-03-25 (6)
 
 ### Fixed

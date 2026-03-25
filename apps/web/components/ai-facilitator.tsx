@@ -6,6 +6,8 @@ import { ArrowRight, Check, MessageCircle } from "lucide-react"
 import QRCode from "react-qr-code"
 import { AnamAvatar } from "./anam-avatar"
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+
 // Maps local question index → LeaQuestionId enum value expected by the API
 const QUESTION_ID_MAP: Record<number, string> = { 0: "Q1", 1: "Q2", 2: "Q3" }
 
@@ -163,7 +165,7 @@ export function AIFacilitator() {
         setIsSubmitting(true)
         setSubmitError(null)
         try {
-          const res = await fetch("http://localhost:3001/api/lea-2026/response", {
+          const res = await fetch(`${API_BASE}/api/lea-2026/response`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ answers: answersPayload }),
@@ -186,7 +188,7 @@ export function AIFacilitator() {
     setChatError(null)
     setIsTransitioning(true)
     try {
-      const res = await fetch("http://localhost:3001/api/lea-2026/anam-session", {
+      const res = await fetch(`${API_BASE}/api/lea-2026/anam-session`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       })
