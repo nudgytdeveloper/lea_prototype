@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-03-26
+
+### Changed
+- `submittedAt` stored in Firestore now uses `YYYY-MM-DD HH:mm:ss AM/PM` format in SGT (GMT+8) instead of ISO 8601 UTC
+- Relaxed `submittedAt` Zod validator from `z.string().datetime()` to `z.string()` to support the new format
+
 ## 2026-03-25 (8)
 
 ### Fixed

@@ -8,6 +8,17 @@ const { Lea2026ResponseSchema, Lea2026SubmissionSchema } = require("@lea/utils")
 const { db } = require("./firestore");
 
 const PORT = Number(process.env.PORT ?? 3001);
+
+function formatSGT(date) {
+  const parts = new Intl.DateTimeFormat('en-SG', {
+    timeZone: 'Asia/Singapore',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: true,
+  }).formatToParts(date)
+  const m = Object.fromEntries(parts.map(p => [p.type, p.value]))
+  return `${m.year}-${m.month}-${m.day} ${m.hour}:${m.minute}:${m.second} ${m.dayPeriod.toUpperCase()}`
+}
 const DEFAULT_ALLOWED_ORIGINS = [
   "http://localhost:3000",
   "https://lea-prototype.onrender.com",
@@ -52,7 +63,7 @@ app.post("/api/lea-2026/response", async (req, res) => {
     event: LEA_2026_EVENT,
     venue: LEA_2026_VENUE,
     answers: submissionParsed.data.answers,
-    submittedAt: submissionParsed.data.submittedAt ?? new Date().toISOString(),
+    submittedAt: submissionParsed.data.submittedAt ?? formatSGT(new Date()),
   };
 
   const fullParsed = Lea2026ResponseSchema.safeParse(fullPayload);
