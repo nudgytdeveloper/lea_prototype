@@ -1,5 +1,11 @@
 # Changelog
 
+## 2026-03-25 (8)
+
+### Fixed
+- Duplicate Anam session call on "Chat more" click: add init guard ref to prevent React StrictMode double-invocation
+- Anam avatar audio muted: remove `muted` attribute from video element so avatar voice is audible
+
 ## 2026-03-25 (7)
 
 ### Fixed

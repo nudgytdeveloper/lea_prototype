@@ -12,6 +12,7 @@ interface AnamAvatarProps {
 
 export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
   const clientRef = useRef<AnamClient | null>(null)
+  const initRef = useRef(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,6 +25,9 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
   }, [])
 
   useEffect(() => {
+    if (initRef.current) return
+    initRef.current = true
+
     let cancelled = false
 
     const init = async () => {
@@ -110,7 +114,6 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
           id="anam-video"
           autoPlay
           playsInline
-          muted
           className={`w-full h-full object-cover transition-opacity duration-500 ${
             isLoading || error ? 'opacity-0' : 'opacity-100'
           }`}
