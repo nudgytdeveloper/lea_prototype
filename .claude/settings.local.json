@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/chanthaithong/Desktop/Nudgyt/lea_prototype -maxdepth 3 -type f \\\\\\(-name *.env* -o -name .eslintrc* -o -name tailwind.config.* -o -name .cursorrules \\\\\\))",
+      "Bash(git:*)",
+      "Bash(du -sh /Users/chanthaithong/Desktop/Nudgyt/lea_prototype/*)"
+    ]
+  }
+}
