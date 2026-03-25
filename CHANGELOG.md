@@ -1,5 +1,18 @@
 # Changelog
 
+## 2026-03-25 (5)
+
+### Added
+- Anam.ai avatar chat integration: "Chat more" button on completion screen launches interactive avatar
+- `POST /api/lea-2026/anam-session` endpoint for secure session token exchange
+- `apps/web/components/anam-avatar.tsx`: avatar chat component with loading/error states and cleanup
+- `ANAM_API_KEY` env var in `.env.example`
+
+## 2026-03-25 (4)
+
+### Changed
+- `apps/api/src/index.js`: allow CORS from `https://lea-prototype.onrender.com` (and optional `WEB_ORIGIN`)
+
 ## 2026-03-25 (3)
 
 ### Added

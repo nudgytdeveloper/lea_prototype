@@ -8,12 +8,28 @@ const { Lea2026ResponseSchema, Lea2026SubmissionSchema } = require("@lea/utils")
 const { db } = require("./firestore");
 
 const PORT = Number(process.env.PORT ?? 3001);
+const DEFAULT_ALLOWED_ORIGINS = [
+  "http://localhost:3000",
+  "https://lea-prototype.onrender.com",
+];
+const EXTRA_ALLOWED_ORIGINS = String(process.env.WEB_ORIGIN ?? "")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+const ALLOWED_ORIGINS = new Set([
+  ...DEFAULT_ALLOWED_ORIGINS,
+  ...EXTRA_ALLOWED_ORIGINS,
+]);
 
 const app = express();
 
 app.use(
   cors({
-    origin: ["http://localhost:3000"],
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.has(origin)) return callback(null, true);
+      return callback(new Error("Not allowed by CORS"));
+    },
   })
 );
 app.use(express.json({ limit: "1mb" }));
@@ -54,6 +70,24 @@ app.post("/api/lea-2026/response", async (req, res) => {
   } catch (err) {
     console.error("Firestore write failed:", err);
     return res.status(500).json({ ok: false, error: "Failed to save response" });
+  }
+});
+
+app.post("/api/lea-2026/anam-session", async (req, res) => {
+  try {
+    const response = await fetch("https://api.anam.ai/v1/auth/session-token", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${process.env.ANAM_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+    });
+    if (!response.ok) throw new Error("Anam auth failed");
+    const data = await response.json();
+    return res.json({ ok: true, sessionToken: data.sessionToken });
+  } catch (err) {
+    console.error("Anam session error:", err);
+    return res.status(500).json({ ok: false, error: "Failed to create avatar session" });
   }
 });
 

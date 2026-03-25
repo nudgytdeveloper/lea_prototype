@@ -2,8 +2,9 @@
 
 import { useState, useCallback, useRef, useEffect } from "react"
 import Image from "next/image"
-import { ArrowRight, Check } from "lucide-react"
+import { ArrowRight, Check, MessageCircle } from "lucide-react"
 import QRCode from "react-qr-code"
+import { AnamAvatar } from "./anam-avatar"
 
 // Maps local question index → LeaQuestionId enum value expected by the API
 const QUESTION_ID_MAP: Record<number, string> = { 0: "Q1", 1: "Q2", 2: "Q3" }
@@ -112,6 +113,9 @@ export function AIFacilitator() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string | null>(null)
+  const [isChatting, setIsChatting] = useState(false)
+  const [anamToken, setAnamToken] = useState<string | null>(null)
+  const [chatError, setChatError] = useState<string | null>(null)
   const [isHovering, setIsHovering] = useState(false)
   const [hoveredChip, setHoveredChip] = useState<string | null>(null)
   const [isTitleHovered, setIsTitleHovered] = useState(false)
@@ -177,6 +181,36 @@ export function AIFacilitator() {
       }
     }, 400)
   }, [selected, isTransitioning, isSubmitting, currentQuestion, totalQuestions, answers])
+
+  const handleChatMore = useCallback(async () => {
+    setChatError(null)
+    setIsTransitioning(true)
+    try {
+      const res = await fetch("http://localhost:3001/api/lea-2026/anam-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+      if (!res.ok) throw new Error("Failed to start chat session")
+      const data = await res.json()
+      setAnamToken(data.sessionToken)
+      setTimeout(() => {
+        setIsChatting(true)
+        setIsTransitioning(false)
+      }, 400)
+    } catch {
+      setChatError("Could not start chat. Please try again.")
+      setIsTransitioning(false)
+    }
+  }, [])
+
+  const handleCloseChat = useCallback(() => {
+    setIsTransitioning(true)
+    setTimeout(() => {
+      setIsChatting(false)
+      setAnamToken(null)
+      setIsTransitioning(false)
+    }, 400)
+  }, [])
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-black">
@@ -414,10 +448,13 @@ export function AIFacilitator() {
                       <p className="mt-3 text-center text-sm text-red-400">{submitError}</p>
                     )}
                   </>
+                ) : isChatting && anamToken ? (
+                  /* ========== AVATAR CHAT STATE ========== */
+                  <AnamAvatar sessionToken={anamToken} onClose={handleCloseChat} />
                 ) : (
                   /* ========== COMPLETION STATE ========== */
                   <div className="text-center py-4">
-                    <div 
+                    <div
                       className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full"
                       style={{
                         background: 'linear-gradient(135deg, rgba(0, 212, 255, 0.3), rgba(168, 85, 247, 0.3))',
@@ -430,19 +467,45 @@ export function AIFacilitator() {
                     <p className="text-white/50 text-lg max-w-md mx-auto">
                       We&apos;ve personalized your experience. Scan the QR code below to continue on your phone.
                     </p>
-                    <button
-                      onClick={() => {
-                        setCurrentQuestion(0)
-                        setAnswers({})
-                        setIsComplete(false)
-                        setSubmitError(null)
-                        setSessionId(null)
-                      }}
-                      className="mt-6 px-6 py-2.5 text-sm font-semibold text-white/60 rounded-full transition-all duration-200 hover:text-white hover:bg-white/10"
-                      style={{ border: '1px solid rgba(255,255,255,0.15)' }}
-                    >
-                      Start over
-                    </button>
+                    {chatError && (
+                      <p className="mt-3 text-sm text-red-400">{chatError}</p>
+                    )}
+                    <div className="mt-6 flex items-center justify-center gap-3">
+                      <button
+                        onClick={() => {
+                          setCurrentQuestion(0)
+                          setAnswers({})
+                          setIsComplete(false)
+                          setSubmitError(null)
+                          setSessionId(null)
+                          setChatError(null)
+                        }}
+                        className="px-6 py-2.5 text-sm font-semibold text-white/60 rounded-full transition-all duration-200 hover:text-white hover:bg-white/10"
+                        style={{ border: '1px solid rgba(255,255,255,0.15)' }}
+                      >
+                        Start over
+                      </button>
+                      <button
+                        onClick={handleChatMore}
+                        disabled={isTransitioning}
+                        className="group relative px-6 py-2.5 text-sm font-semibold text-black rounded-full transition-all duration-300 cursor-pointer overflow-hidden"
+                        style={{
+                          background: 'linear-gradient(135deg, #ffffff 0%, #e0e7ff 100%)',
+                          boxShadow: '0 0 20px rgba(168, 85, 247, 0.3), 0 0 40px rgba(0, 212, 255, 0.2)',
+                        }}
+                      >
+                        <span className="relative z-10 flex items-center gap-2">
+                          <MessageCircle className="h-4 w-4" />
+                          Chat more
+                        </span>
+                        <div
+                          className="absolute inset-0 -z-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
+                          style={{
+                            background: 'linear-gradient(90deg, transparent, rgba(168, 85, 247, 0.2), transparent)',
+                          }}
+                        />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -450,9 +513,9 @@ export function AIFacilitator() {
           </div>
 
           {/* ========== QR CODE SECTION ========== */}
-          <div 
+          <div
             className={`mt-12 transition-all duration-500 ${
-              isComplete ? 'scale-105 opacity-100' : 'scale-100 opacity-100'
+              isChatting ? 'opacity-0 scale-95 pointer-events-none' : isComplete ? 'scale-105 opacity-100' : 'scale-100 opacity-100'
             }`}
           >
             <div 
