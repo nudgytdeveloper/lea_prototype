@@ -6,14 +6,19 @@ node_modules/
 .next/
 out/
 
+# API build output
+dist/
+
 # Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+*.log
 
 # Env files
 .env*.local
+.env
 
 # OS files
 .DS_Store
