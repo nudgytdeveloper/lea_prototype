@@ -215,14 +215,15 @@ export function AIFacilitator() {
       {/* Main content container */}
       <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8 py-16">
         
-        {/* Nudgyt Logo - Top left, original colors preserved */}
-        <div className="absolute top-8 left-8">
+        {/* Nudgyt Logo - Top left, small brand mark */}
+        <div className="absolute top-5 left-6 z-20">
           <Image
             src="/nudgyt-logo.png"
             alt="Nudgyt"
-            width={110}
-            height={32}
-            className="drop-shadow-lg w-auto h-auto"
+            width={72}
+            height={22}
+            className="object-contain"
+            style={{ width: 72, height: "auto" }}
             priority
           />
         </div>
