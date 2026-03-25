@@ -30,9 +30,11 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
         const client = createClient(sessionToken)
         clientRef.current = client
 
-        client.addListener(AnamEvent.VIDEO_PLAY_STARTED, () => {
-          if (!cancelled) setIsLoading(false)
-        })
+        const markReady = () => { if (!cancelled) setIsLoading(false) }
+
+        client.addListener(AnamEvent.VIDEO_PLAY_STARTED, markReady)
+        client.addListener(AnamEvent.VIDEO_STREAM_STARTED, markReady)
+        client.addListener(AnamEvent.AUDIO_STREAM_STARTED, markReady)
 
         client.addListener(AnamEvent.CONNECTION_CLOSED, () => {
           if (!cancelled) {

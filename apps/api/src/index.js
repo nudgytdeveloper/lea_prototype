@@ -81,10 +81,15 @@ app.post("/api/lea-2026/anam-session", async (req, res) => {
         "Authorization": `Bearer ${process.env.ANAM_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ personaId: process.env.ANAM_PERSONA_ID }),
+      body: JSON.stringify({
+        personaConfig: { personaId: process.env.ANAM_PERSONA_ID },
+      }),
     });
-    if (!response.ok) throw new Error("Anam auth failed");
     const data = await response.json();
+    if (!response.ok) {
+      console.error("Anam auth response:", response.status, data);
+      throw new Error("Anam auth failed");
+    }
     return res.json({ ok: true, sessionToken: data.sessionToken });
   } catch (err) {
     console.error("Anam session error:", err);

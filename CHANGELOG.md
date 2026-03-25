@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-03-25 (6)
+
+### Fixed
+- Anam session token creation: use correct `{ personaConfig: { personaId } }` request body per API docs to fix "Legacy session tokens are no longer supported" error
+
 ## 2026-03-25 (5)
 
 ### Added

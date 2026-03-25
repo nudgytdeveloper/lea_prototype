@@ -5,7 +5,8 @@
       "Bash(git:*)",
       "Bash(du -sh /Users/chanthaithong/Desktop/Nudgyt/lea_prototype/*)",
       "Bash(find /Users/chanthaithong/Desktop/Nudgyt/lea_prototype -maxdepth 2 -name .env* -o -name *.env*)",
-      "Bash(pnpm:*)"
+      "Bash(pnpm:*)",
+      "WebFetch(domain:api.anam.ai)"
     ]
   }
 }
