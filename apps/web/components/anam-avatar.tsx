@@ -13,14 +13,26 @@ interface AnamAvatarProps {
 export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
   const clientRef = useRef<AnamClient | null>(null)
   const initRef = useRef(false)
+  const cleaningUpRef = useRef(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const cleanup = useCallback(async () => {
-    const client = clientRef.current
-    if (client) {
-      try { await client.stopStreaming() } catch { /* may not be streaming */ }
-      clientRef.current = null
+    if (cleaningUpRef.current) return
+    cleaningUpRef.current = true
+    try {
+      const client = clientRef.current
+      if (client) {
+        clientRef.current = null
+        try { await client.stopStreaming() } catch { /* may not be streaming */ }
+      }
+      const video = document.getElementById("anam-video") as HTMLVideoElement | null
+      if (video?.srcObject) {
+        (video.srcObject as MediaStream).getTracks().forEach(t => t.stop())
+        video.srcObject = null
+      }
+    } finally {
+      cleaningUpRef.current = false
     }
   }, [])
 
@@ -62,6 +74,7 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
 
     return () => {
       cancelled = true
+      initRef.current = false
       cleanup()
     }
   }, [sessionToken, cleanup])

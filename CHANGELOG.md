@@ -5,6 +5,7 @@
 ### Fixed
 - Duplicate Anam session call on "Chat more" click: add init guard ref to prevent React StrictMode double-invocation
 - Anam avatar audio muted: remove `muted` attribute from video element so avatar voice is audible
+- Microphone not released after closing avatar chat (causing 429 "concurrent session limit" on re-open): fix recursive cleanup loop where `stopStreaming()` emits `CONNECTION_CLOSED` which re-entered cleanup; add `cleaningUpRef` re-entrancy guard, null `clientRef` before calling SDK stop, reset `initRef` on unmount so re-opening works
 
 ## 2026-03-25 (7)
 
