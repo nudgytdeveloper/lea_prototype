@@ -4,6 +4,8 @@
 
 ### Fixed
 - Anam session token creation: use correct `{ personaConfig: { personaId } }` request body per API docs to fix "Legacy session tokens are no longer supported" error
+- Avatar video visibility: listen to `VIDEO_STREAM_STARTED` and `AUDIO_STREAM_STARTED` as fallbacks so loading overlay clears; add `muted` to `<video>` for autoplay compliance
+- Microphone not released on avatar error: call `cleanup()` in catch block and always call `stopStreaming()` unconditionally during cleanup
 
 ## 2026-03-25 (5)
 

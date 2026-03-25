@@ -16,10 +16,11 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
   const [error, setError] = useState<string | null>(null)
 
   const cleanup = useCallback(async () => {
-    if (clientRef.current?.isStreaming()) {
-      await clientRef.current.stopStreaming()
+    const client = clientRef.current
+    if (client) {
+      try { await client.stopStreaming() } catch { /* may not be streaming */ }
+      clientRef.current = null
     }
-    clientRef.current = null
   }, [])
 
   useEffect(() => {
@@ -45,6 +46,7 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
 
         await client.streamToVideoElement("anam-video")
       } catch (err) {
+        await cleanup()
         if (!cancelled) {
           setError(err instanceof Error ? err.message : "Failed to start avatar")
           setIsLoading(false)
@@ -108,6 +110,7 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
           id="anam-video"
           autoPlay
           playsInline
+          muted
           className={`w-full h-full object-cover transition-opacity duration-500 ${
             isLoading || error ? 'opacity-0' : 'opacity-100'
           }`}
