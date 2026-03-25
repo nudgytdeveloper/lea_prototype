@@ -20,6 +20,9 @@ pnpm-debug.log*
 .env*.local
 .env
 
+# Local Firebase config
+lea-prototype-firebase.json
+
 # OS files
 .DS_Store
 

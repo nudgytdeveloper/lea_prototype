@@ -3,6 +3,10 @@
 import { useState, useCallback, useRef, useEffect } from "react"
 import Image from "next/image"
 import { ArrowRight, Check } from "lucide-react"
+import QRCode from "react-qr-code"
+
+// Maps local question index → LeaQuestionId enum value expected by the API
+const QUESTION_ID_MAP: Record<number, string> = { 0: "Q1", 1: "Q2", 2: "Q3" }
 
 // Question data structure
 const questions = [
@@ -105,6 +109,9 @@ export function AIFacilitator() {
   const [answers, setAnswers] = useState<Record<number, string>>({})
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [isComplete, setIsComplete] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [sessionId, setSessionId] = useState<string | null>(null)
   const [isHovering, setIsHovering] = useState(false)
   const [hoveredChip, setHoveredChip] = useState<string | null>(null)
   const [isTitleHovered, setIsTitleHovered] = useState(false)
@@ -129,25 +136,47 @@ export function AIFacilitator() {
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
+
   const handleSelect = useCallback((optionId: string) => {
     setAnswers(prev => ({ ...prev, [currentQuestion]: optionId }))
   }, [currentQuestion])
 
-  const handleContinue = useCallback(() => {
-    if (!selected || isTransitioning) return
+  const handleContinue = useCallback(async () => {
+    if (!selected || isTransitioning || isSubmitting) return
 
     setIsTransitioning(true)
 
-    // Smooth transition to next question or complete
-    setTimeout(() => {
+    // Smooth transition to next question or submit on last question
+    setTimeout(async () => {
       if (currentQuestion < totalQuestions - 1) {
         setCurrentQuestion(prev => prev + 1)
+        setIsTransitioning(false)
       } else {
-        setIsComplete(true)
+        const answersPayload = [0, 1, 2].map((idx) => ({
+          questionId: QUESTION_ID_MAP[idx],
+          value: answers[idx],
+        }))
+        setIsSubmitting(true)
+        setSubmitError(null)
+        try {
+          const res = await fetch("http://localhost:3001/api/lea-2026/response", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ answers: answersPayload }),
+          })
+          if (!res.ok) throw new Error("API error")
+          const data = await res.json()
+          setSessionId(data.sessionId)
+          setIsComplete(true)
+        } catch {
+          setSubmitError("Something went wrong. Please try again.")
+        } finally {
+          setIsSubmitting(false)
+          setIsTransitioning(false)
+        }
       }
-      setIsTransitioning(false)
     }, 400)
-  }, [selected, isTransitioning, currentQuestion, totalQuestions])
+  }, [selected, isTransitioning, isSubmitting, currentQuestion, totalQuestions, answers])
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden bg-black">
@@ -343,9 +372,9 @@ export function AIFacilitator() {
                       onMouseEnter={() => setIsHovering(true)}
                       onMouseLeave={() => setIsHovering(false)}
                       onClick={handleContinue}
-                      disabled={!selected || isTransitioning}
+                      disabled={!selected || isTransitioning || isSubmitting}
                       className={`group relative mx-auto flex w-full max-w-sm overflow-hidden rounded-2xl px-10 py-5 text-base font-bold tracking-wide transition-all duration-500 ${
-                        selected
+                        selected && !isSubmitting
                           ? "text-black cursor-pointer"
                           : "cursor-not-allowed text-white/30"
                       }`}
@@ -361,12 +390,14 @@ export function AIFacilitator() {
                       }
                     >
                       <span className="relative z-10 flex w-full items-center justify-center gap-3">
-                        Continue
-                        <ArrowRight 
-                          className={`h-5 w-5 transition-transform duration-300 ${
-                            isHovering && selected ? "translate-x-1" : ""
-                          }`} 
-                        />
+                        {isSubmitting ? "Submitting..." : "Continue"}
+                        {!isSubmitting && (
+                          <ArrowRight
+                            className={`h-5 w-5 transition-transform duration-300 ${
+                              isHovering && selected ? "translate-x-1" : ""
+                            }`}
+                          />
+                        )}
                       </span>
                       {/* Shine effect on hover */}
                       {selected && (
@@ -378,6 +409,10 @@ export function AIFacilitator() {
                         />
                       )}
                     </button>
+
+                    {submitError && (
+                      <p className="mt-3 text-center text-sm text-red-400">{submitError}</p>
+                    )}
                   </>
                 ) : (
                   /* ========== COMPLETION STATE ========== */
@@ -395,6 +430,19 @@ export function AIFacilitator() {
                     <p className="text-white/50 text-lg max-w-md mx-auto">
                       We&apos;ve personalized your experience. Scan the QR code below to continue on your phone.
                     </p>
+                    <button
+                      onClick={() => {
+                        setCurrentQuestion(0)
+                        setAnswers({})
+                        setIsComplete(false)
+                        setSubmitError(null)
+                        setSessionId(null)
+                      }}
+                      className="mt-6 px-6 py-2.5 text-sm font-semibold text-white/60 rounded-full transition-all duration-200 hover:text-white hover:bg-white/10"
+                      style={{ border: '1px solid rgba(255,255,255,0.15)' }}
+                    >
+                      Start over
+                    </button>
                   </div>
                 )}
               </div>
@@ -423,16 +471,12 @@ export function AIFacilitator() {
               }}
             >
               {/* QR Code */}
-              <div className="relative h-16 w-16 overflow-hidden rounded-xl bg-white p-1.5 shadow-lg">
-                <div 
-                  className="h-full w-full rounded-lg"
-                  style={{
-                    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 29 29'%3E%3Cpath d='M0 0h29v29H0z' fill='%23fff'/%3E%3Cpath d='M1 1h7v7H1zM21 1h7v7h-7zM1 21h7v7H1z' stroke='%23000' stroke-width='2' fill='none'/%3E%3Cpath d='M3 3h3v3H3zM23 3h3v3h-3zM3 23h3v3H3zM9 1h3v1H9zM13 1h3v1h-3zM17 1h1v1h-1zM1 9h1v3H1zM1 13h1v3H1zM1 17h1v1H1zM27 9h1v3h-1zM27 13h1v3h-1zM27 17h1v1h-1zM9 27h3v1H9zM13 27h3v1h-3zM17 27h1v1h-1zM9 9h3v3H9zM13 9h3v3h-3zM17 9h3v3h-3zM9 13h3v3H9zM17 13h3v3h-3zM9 17h3v3H9zM13 17h3v3h-3zM17 17h3v3h-3z' fill='%23000'/%3E%3C/svg%3E")`,
-                    backgroundSize: 'contain',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                  }}
-                />
+              <div className="relative h-16 w-16 overflow-hidden rounded-xl bg-white p-1.5 shadow-lg flex items-center justify-center">
+                {sessionId ? (
+                  <QRCode value={sessionId} size={52} />
+                ) : (
+                  <div className="h-full w-full rounded-lg bg-white/20" />
+                )}
               </div>
               <div>
                 <p className="text-sm font-semibold text-white/90">
