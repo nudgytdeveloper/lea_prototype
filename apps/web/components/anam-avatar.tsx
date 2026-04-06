@@ -12,6 +12,38 @@ interface AnamAvatarProps {
   onClose: () => void
 }
 
+// Mock data for demonstration - shows alternating AI and user messages
+const MOCK_TRANSCRIPT_DATA: TranscriptMessage[] = [
+  {
+    id: "mock-1",
+    role: "ai",
+    content: "Hello! I'm LEA, your AI networking assistant. I'm here to help connect you with the right people at this event.",
+    timestamp: new Date(Date.now() - 60000),
+    isNew: false,
+  },
+  {
+    id: "mock-2", 
+    role: "user",
+    content: "Hi LEA! I'm looking to meet some investors in the fintech space.",
+    timestamp: new Date(Date.now() - 45000),
+    isNew: false,
+  },
+  {
+    id: "mock-3",
+    role: "ai",
+    content: "That's great! Based on your profile, I can see you're a founder in the payments sector. There are several fintech investors here today who might be a perfect match.",
+    timestamp: new Date(Date.now() - 30000),
+    isNew: false,
+  },
+  {
+    id: "mock-4",
+    role: "user",
+    content: "That sounds perfect. Can you tell me more about them?",
+    timestamp: new Date(Date.now() - 15000),
+    isNew: false,
+  },
+]
+
 export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
   const clientRef = useRef<AnamClient | null>(null)
   const initRef = useRef(false)
@@ -21,9 +53,10 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showTranscript, setShowTranscript] = useState(true)
-  const [messages, setMessages] = useState<TranscriptMessage[]>([])
+  const [messages, setMessages] = useState<TranscriptMessage[]>(MOCK_TRANSCRIPT_DATA)
   const [isAiSpeaking, setIsAiSpeaking] = useState(false)
-  const messageIdRef = useRef(0)
+  const messageIdRef = useRef(MOCK_TRANSCRIPT_DATA.length)
+  const processedMessagesRef = useRef<Set<string>>(new Set())
 
   const cleanup = useCallback(async () => {
     if (cleaningUpRef.current) return
@@ -44,8 +77,15 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
     }
   }, [])
 
-  // Add message helper
+  // Add message helper - prevents duplicates
   const addMessage = useCallback((role: "user" | "ai", content: string) => {
+    // Create a unique key for this message to prevent duplicates
+    const contentKey = `${role}-${content.slice(0, 50)}`
+    if (processedMessagesRef.current.has(contentKey)) {
+      return // Skip duplicate message
+    }
+    processedMessagesRef.current.add(contentKey)
+
     const id = `msg-${++messageIdRef.current}`
     setMessages((prev) => [
       ...prev,
@@ -76,15 +116,14 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
         client.addListener(AnamEvent.VIDEO_STREAM_STARTED, markReady)
         client.addListener(AnamEvent.AUDIO_STREAM_STARTED, markReady)
 
-        // Listen for transcript events
+        // Listen for transcript events - properly handle all messages
         client.addListener(AnamEvent.MESSAGE_HISTORY_UPDATED, (data: { messages: Array<{ role: string; content: string }> }) => {
-          if (!cancelled && data?.messages) {
-            // Process new messages from the history
-            const latestMessage = data.messages[data.messages.length - 1]
-            if (latestMessage) {
-              const role = latestMessage.role === "user" ? "user" : "ai"
-              addMessage(role, latestMessage.content)
-            }
+          if (!cancelled && data?.messages && data.messages.length > 0) {
+            // Process ALL new messages from the history, not just the latest
+            data.messages.forEach((msg) => {
+              const role = msg.role === "user" ? "user" : "ai"
+              addMessage(role, msg.content)
+            })
           }
         })
 
@@ -106,11 +145,11 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
 
         await client.streamToVideoElement("anam-video")
 
-        // Add initial greeting after connection
+        // Add a new AI message after connection to show the feed is live
         if (!cancelled) {
           setTimeout(() => {
-            addMessage("ai", "Hello! I'm your AI assistant. How can I help you today?")
-          }, 1500)
+            addMessage("ai", "I've found some excellent matches for you. Let me share the details about the investors who align with your goals.")
+          }, 2000)
         }
       } catch (err) {
         await cleanup()
@@ -155,8 +194,8 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
   }, [])
 
   return (
-    <div className="py-4">
-      {/* Controls row */}
+    <div className="py-4 flex flex-col">
+      {/* Controls row - positioned above video */}
       <div className="flex items-center justify-between mb-4">
         {/* Transcript toggle */}
         <motion.button
@@ -203,23 +242,24 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
         </div>
       </div>
 
-      {/* Main content area */}
-      <div className="flex gap-4">
-        {/* Video container */}
+      {/* Main content area - VERTICAL layout: video on top, transcript below */}
+      <div 
+        ref={containerRef} 
+        className="flex flex-col"
+      >
+        {/* Video container - LARGE and centered, maintaining dominant visual presence */}
         <div
-          ref={containerRef}
-          className={`relative flex-1 aspect-video rounded-2xl overflow-hidden bg-black transition-all duration-500 ${
-            showTranscript ? "max-w-none" : "max-w-none"
-          }`}
+          className="relative w-full rounded-2xl overflow-hidden bg-black"
           style={{
-            boxShadow: "0 0 60px -15px rgba(168, 85, 247, 0.3), 0 0 30px -10px rgba(6, 182, 212, 0.2)",
+            aspectRatio: "16 / 9",
+            boxShadow: "0 0 80px -20px rgba(168, 85, 247, 0.4), 0 0 40px -15px rgba(6, 182, 212, 0.3), 0 25px 60px -20px rgba(0, 0, 0, 0.6)",
           }}
         >
           {/* Gradient border effect */}
           <div
             className="absolute -inset-px rounded-2xl z-0 pointer-events-none"
             style={{
-              background: "linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(6, 182, 212, 0.3), rgba(236, 72, 153, 0.3))",
+              background: "linear-gradient(135deg, rgba(168, 85, 247, 0.5), rgba(6, 182, 212, 0.4), rgba(236, 72, 153, 0.4))",
               filter: "blur(1px)",
             }}
           />
@@ -234,26 +274,26 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
                   <motion.div
                     animate={{ rotate: 360 }}
                     transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                    className="absolute -inset-2 rounded-full opacity-50"
+                    className="absolute -inset-3 rounded-full opacity-50"
                     style={{
                       background: "conic-gradient(from 0deg, transparent, rgba(168, 85, 247, 0.5), rgba(6, 182, 212, 0.5), transparent)",
                     }}
                   />
                   <div
-                    className="relative h-12 w-12 rounded-full border-2 border-white/20 border-t-white/80 animate-spin"
+                    className="relative h-14 w-14 rounded-full border-2 border-white/20 border-t-white/80 animate-spin"
                   />
                 </div>
-                <p className="mt-4 text-sm text-white/50 font-medium">Initializing avatar...</p>
+                <p className="mt-5 text-base text-white/50 font-medium">Initializing avatar...</p>
               </div>
             )}
 
             {/* Error state */}
             {error && (
               <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-                <p className="text-sm text-red-400 mb-3">{error}</p>
+                <p className="text-base text-red-400 mb-4">{error}</p>
                 <button
                   onClick={handleClose}
-                  className="px-4 py-2 text-sm font-semibold text-white/60 rounded-full transition-all duration-200 hover:text-white hover:bg-white/10"
+                  className="px-5 py-2.5 text-sm font-semibold text-white/60 rounded-full transition-all duration-200 hover:text-white hover:bg-white/10"
                   style={{ border: "1px solid rgba(255,255,255,0.15)" }}
                 >
                   Go back
@@ -261,7 +301,7 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
               </div>
             )}
 
-            {/* Video element */}
+            {/* Video element - full coverage */}
             <video
               id="anam-video"
               autoPlay
@@ -274,52 +314,65 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
               }}
             />
 
-            {/* AI speaking indicator overlay */}
+            {/* AI speaking indicator overlay - bottom left of video */}
             <AnimatePresence>
               {isAiSpeaking && !isLoading && !error && (
                 <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute bottom-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  className="absolute bottom-5 left-5 flex items-center gap-2.5 px-4 py-2 rounded-full"
                   style={{
-                    background: "rgba(0, 0, 0, 0.5)",
-                    backdropFilter: "blur(8px)",
-                    border: "1px solid rgba(255, 255, 255, 0.1)",
+                    background: "rgba(0, 0, 0, 0.6)",
+                    backdropFilter: "blur(12px)",
+                    border: "1px solid rgba(255, 255, 255, 0.12)",
                   }}
                 >
                   <motion.div
-                    animate={{ scale: [1, 1.3, 1] }}
+                    animate={{ scale: [1, 1.4, 1] }}
                     transition={{ duration: 0.6, repeat: Infinity }}
-                    className="w-2 h-2 rounded-full bg-cyan-400"
+                    className="w-2.5 h-2.5 rounded-full bg-gradient-to-r from-cyan-400 to-purple-400"
                   />
-                  <span className="text-xs text-white/70 font-medium">Speaking</span>
+                  <span className="text-sm text-white/80 font-medium">Speaking</span>
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
         </div>
 
-        {/* Transcript Panel */}
+        {/* Transcript Panel - BELOW video, full width, integrated design */}
         <AnimatePresence>
           {showTranscript && (
-            <TranscriptPanel
-              messages={messages}
-              isAiSpeaking={isAiSpeaking}
-            />
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+              className="mt-4 w-full"
+            >
+              <TranscriptPanel
+                messages={messages}
+                isAiSpeaking={isAiSpeaking}
+              />
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* End chat button */}
+      {/* End chat button - below everything with proper spacing */}
       {!isLoading && !error && (
         <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.4 }}
           onClick={handleClose}
-          className="mt-6 mx-auto block px-6 py-2.5 text-sm font-semibold text-white/60 rounded-full transition-all duration-200 hover:text-white hover:bg-white/10"
-          style={{ border: "1px solid rgba(255,255,255,0.15)" }}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="mt-6 mx-auto block px-8 py-3 text-sm font-semibold text-white/60 rounded-full transition-all duration-300 hover:text-white hover:bg-white/10"
+          style={{ 
+            border: "1px solid rgba(255,255,255,0.15)",
+            backdropFilter: "blur(8px)",
+          }}
         >
           End conversation
         </motion.button>
