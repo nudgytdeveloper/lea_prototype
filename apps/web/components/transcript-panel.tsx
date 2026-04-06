@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Bot, User } from "lucide-react"
 
@@ -168,23 +168,35 @@ export function TranscriptPanel({
   className = "",
 }: TranscriptPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true)
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false)
+
+  const lastMessageKey = useMemo(() => {
+    const last = messages[messages.length - 1]
+    return last ? `${last.id}:${last.role}` : "empty"
+  }, [messages])
 
   // Auto-scroll to latest message
   useEffect(() => {
-    if (scrollRef.current && isScrolledToBottom) {
-      scrollRef.current.scrollTo({
-        top: scrollRef.current.scrollHeight,
-        behavior: "smooth",
-      })
-    }
-  }, [messages, isAiSpeaking, isScrolledToBottom])
+    if (!isScrolledToBottom) return
+    const target = bottomRef.current
+    if (!target) return
+
+    // Wait a tick so layout/animations update scrollHeight.
+    const raf = requestAnimationFrame(() => {
+      target.scrollIntoView({ behavior: "smooth", block: "end" })
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [lastMessageKey, isAiSpeaking, isScrolledToBottom])
 
   // Track scroll position
   const handleScroll = () => {
     if (scrollRef.current) {
       const { scrollTop, scrollHeight, clientHeight } = scrollRef.current
-      setIsScrolledToBottom(scrollTop + clientHeight >= scrollHeight - 30)
+      const atBottom = scrollTop + clientHeight >= scrollHeight - 48
+      setIsScrolledToBottom(atBottom)
+      setShowJumpToLatest(!atBottom && messages.length > 0)
     }
   }
 
@@ -342,7 +354,38 @@ export function TranscriptPanel({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Sentinel element for scroll-to-bottom */}
+          <div ref={bottomRef} />
         </div>
+
+        {/* Jump to latest button */}
+        <AnimatePresence>
+          {showJumpToLatest && (
+            <motion.button
+              type="button"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 10 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              onClick={() => {
+                setIsScrolledToBottom(true)
+                setShowJumpToLatest(false)
+                bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
+              }}
+              className="absolute bottom-6 right-6 z-20 px-3.5 py-2 rounded-full text-[12px] font-semibold text-white/80 hover:text-white transition-colors"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(168, 85, 247, 0.22) 0%, rgba(6, 182, 212, 0.16) 100%)",
+                border: "1px solid rgba(255, 255, 255, 0.14)",
+                boxShadow: "0 12px 24px -12px rgba(0, 0, 0, 0.6)",
+                backdropFilter: "blur(12px)",
+              }}
+            >
+              Jump to latest
+            </motion.button>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Bottom gradient accent */}

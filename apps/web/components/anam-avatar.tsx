@@ -80,7 +80,8 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
   // Add message helper - prevents duplicates
   const addMessage = useCallback((role: "user" | "ai", content: string) => {
     // Create a unique key for this message to prevent duplicates
-    const contentKey = `${role}-${content.slice(0, 50)}`
+    const normalized = content.trim()
+    const contentKey = `${role}:${normalized}`
     if (processedMessagesRef.current.has(contentKey)) {
       return // Skip duplicate message
     }
@@ -92,7 +93,7 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
       {
         id,
         role,
-        content,
+        content: normalized,
         timestamp: new Date(),
         isNew: true,
       },
@@ -116,24 +117,21 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
         client.addListener(AnamEvent.VIDEO_STREAM_STARTED, markReady)
         client.addListener(AnamEvent.AUDIO_STREAM_STARTED, markReady)
 
-        // Listen for transcript events - properly handle all messages
-        client.addListener(AnamEvent.MESSAGE_HISTORY_UPDATED, (data: { messages: Array<{ role: string; content: string }> }) => {
-          if (!cancelled && data?.messages && data.messages.length > 0) {
-            // Process ALL new messages from the history, not just the latest
-            data.messages.forEach((msg) => {
-              const role = msg.role === "user" ? "user" : "ai"
-              addMessage(role, msg.content)
-            })
-          }
+        // Listen for transcript events
+        client.addListener(AnamEvent.MESSAGE_HISTORY_UPDATED, (history) => {
+          if (cancelled || !history || history.length === 0) return
+          history.forEach((msg) => {
+            const role = msg.role === "user" ? "user" : "ai"
+            addMessage(role, msg.content ?? "")
+          })
         })
 
-        // Listen for AI speaking state
-        client.addListener(AnamEvent.TALK_STREAM_STARTED, () => {
-          if (!cancelled) setIsAiSpeaking(true)
-        })
-
-        client.addListener(AnamEvent.TALK_STREAM_ENDED, () => {
-          if (!cancelled) setIsAiSpeaking(false)
+        // Derive AI speaking state from message stream events
+        client.addListener(AnamEvent.MESSAGE_STREAM_EVENT_RECEIVED, (evt) => {
+          if (cancelled) return
+          const isPersona = evt.role === "persona"
+          if (!isPersona) return
+          setIsAiSpeaking(!evt.endOfSpeech)
         })
 
         client.addListener(AnamEvent.CONNECTION_CLOSED, () => {
@@ -148,7 +146,7 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
         // Add a new AI message after connection to show the feed is live
         if (!cancelled) {
           setTimeout(() => {
-            addMessage("ai", "I've found some excellent matches for you. Let me share the details about the investors who align with your goals.")
+            addMessage("ai", "Hello! I'm LEA, your AI networking assistant. How can I help you today?")
           }, 2000)
         }
       } catch (err) {

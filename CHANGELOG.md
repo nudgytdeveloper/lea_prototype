@@ -2,6 +2,10 @@
 
 ## 2026-04-06
 
+### Fixed
+- Transcript panel now smoothly auto-scrolls to the latest message while new messages arrive
+- Avatar greeting now appears in the transcript feed and transcript de-duplication no longer drops similar-prefixed messages
+
 ### Added
 - Full screen toggle button for Anam.ai avatar chat
 
