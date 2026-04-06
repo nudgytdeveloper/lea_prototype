@@ -19,8 +19,12 @@ function formatSGT(date) {
   const m = Object.fromEntries(parts.map(p => [p.type, p.value]))
   return `${m.year}-${m.month}-${m.day} ${m.hour}:${m.minute}:${m.second} ${m.dayPeriod.toUpperCase()}`
 }
+
+const LOCALHOST_PORTS = [3000, 3001, 3002, 3003]
+const LOCALHOST_ALLOWED_ORIGINS = LOCALHOST_PORTS.map((port) => `http://localhost:${port}`)
+
 const DEFAULT_ALLOWED_ORIGINS = [
-  "http://localhost:3000",
+  ...LOCALHOST_ALLOWED_ORIGINS,
   "https://lea-prototype.onrender.com",
 ];
 const EXTRA_ALLOWED_ORIGINS = String(process.env.WEB_ORIGIN ?? "")

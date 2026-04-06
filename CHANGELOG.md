@@ -1,5 +1,14 @@
 # Changelog
 
+## 2026-04-06
+
+### Added
+- Full screen toggle button for Anam.ai avatar chat
+
+### Changed
+- Increased Anam.ai avatar chat video size to fill the card width
+- API CORS now allows localhost origins on ports 3001–3003 via a shared constant list
+
 ## 2026-03-26
 
 ### Changed

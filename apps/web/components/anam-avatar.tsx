@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react"
 import { createClient, AnamEvent } from "@anam-ai/js-sdk"
 import type { AnamClient } from "@anam-ai/js-sdk"
-import { X } from "lucide-react"
+import { Maximize2, Minimize2, X } from "lucide-react"
 
 interface AnamAvatarProps {
   sessionToken: string
@@ -16,6 +16,8 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
   const cleaningUpRef = useRef(false)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
 
   const cleanup = useCallback(async () => {
     if (cleaningUpRef.current) return
@@ -79,15 +81,45 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
     }
   }, [sessionToken, cleanup])
 
+  useEffect(() => {
+    const update = () => setIsFullscreen(Boolean(document.fullscreenElement))
+    document.addEventListener("fullscreenchange", update)
+    update()
+    return () => document.removeEventListener("fullscreenchange", update)
+  }, [])
+
   const handleClose = useCallback(async () => {
     await cleanup()
     onClose()
   }, [cleanup, onClose])
 
+  const handleToggleFullscreen = useCallback(async () => {
+    const el = containerRef.current
+    if (!el) return
+
+    if (document.fullscreenElement) {
+      await document.exitFullscreen()
+      return
+    }
+
+    await el.requestFullscreen()
+  }, [])
+
   return (
     <div className="text-center py-4">
       {/* Close button */}
       <div className="flex justify-end mb-4">
+        <button
+          onClick={handleToggleFullscreen}
+          className="p-2 rounded-full transition-all duration-200 text-white/40 hover:text-white hover:bg-white/10"
+          aria-label={isFullscreen ? "Exit full screen" : "Enter full screen"}
+        >
+          {isFullscreen ? (
+            <Minimize2 className="h-5 w-5" />
+          ) : (
+            <Maximize2 className="h-5 w-5" />
+          )}
+        </button>
         <button
           onClick={handleClose}
           className="p-2 rounded-full transition-all duration-200 text-white/40 hover:text-white hover:bg-white/10"
@@ -97,7 +129,10 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
       </div>
 
       {/* Video container */}
-      <div className="relative mx-auto w-full max-w-md aspect-video rounded-2xl overflow-hidden">
+      <div
+        ref={containerRef}
+        className="relative mx-auto w-full max-w-none aspect-video rounded-2xl overflow-hidden bg-black"
+      >
         {/* Loading state */}
         {isLoading && !error && (
           <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
