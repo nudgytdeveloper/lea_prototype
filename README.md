@@ -8,6 +8,8 @@ This repo is a **pnpm workspace monorepo**:
 - `constants`: shared enums/constants (event/venue/question IDs)
 - `utils`: shared Zod schemas/types for request/response validation
 
+Partner integration (QR `session` deep link, Firestore): [UMBRA.md](./UMBRA.md).
+
 ## Prerequisites
 - Node.js (recommended: Node 22+)
 - pnpm
