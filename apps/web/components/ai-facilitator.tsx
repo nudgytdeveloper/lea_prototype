@@ -1,12 +1,14 @@
 "use client"
 
-import { useState, useCallback, useRef, useEffect } from "react"
+import { useState, useCallback, useRef, useEffect, useMemo } from "react"
 import Image from "next/image"
 import { ArrowRight, Check, MessageCircle } from "lucide-react"
-import QRCode from "react-qr-code"
 import { AnamAvatar } from "./anam-avatar"
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"
+const APP_URL_FROM_ENV = process.env.NEXT_PUBLIC_APP_URL ?? ""
+/** Pixel size requested from qrserver and shown when a session exists */
+const QR_IMAGE_SIZE = 240
 
 // Maps local question index → LeaQuestionId enum value expected by the API
 const QUESTION_ID_MAP: Record<number, string> = { 0: "Q1", 1: "Q2", 2: "Q3" }
@@ -122,6 +124,24 @@ export function AIFacilitator() {
   const [hoveredChip, setHoveredChip] = useState<string | null>(null)
   const [isTitleHovered, setIsTitleHovered] = useState(false)
   const cardRef = useRef<HTMLDivElement>(null)
+  const [clientAppUrl, setClientAppUrl] = useState("")
+
+  useEffect(() => {
+    if (!APP_URL_FROM_ENV) {
+      setClientAppUrl(window.location.origin)
+    }
+  }, [])
+
+  const baseUrl = APP_URL_FROM_ENV || clientAppUrl
+
+  const qrSrc = useMemo(() => {
+    if (!baseUrl || !sessionId) return ""
+    const normalized = baseUrl.replace(/\/$/, "")
+    const targetUrl = `${normalized}/?session=${encodeURIComponent(sessionId)}`
+    return `https://api.qrserver.com/v1/create-qr-code/?size=${QR_IMAGE_SIZE}x${QR_IMAGE_SIZE}&data=${encodeURIComponent(
+      targetUrl
+    )}`
+  }, [baseUrl, sessionId])
 
   const currentQ = questions[currentQuestion]
   const selected = answers[currentQuestion] || null
@@ -521,7 +541,7 @@ export function AIFacilitator() {
             }`}
           >
             <div 
-              className={`flex items-center gap-5 rounded-2xl px-6 py-5 transition-all duration-500 ${
+              className={`flex flex-col items-center gap-5 rounded-2xl px-6 py-5 transition-all duration-500 sm:flex-row sm:items-center ${
                 isComplete ? 'ring-2 ring-white/20' : ''
               }`}
               style={{
@@ -535,15 +555,26 @@ export function AIFacilitator() {
                   : 'none',
               }}
             >
-              {/* QR Code */}
-              <div className="relative h-16 w-16 overflow-hidden rounded-xl bg-white p-1.5 shadow-lg flex items-center justify-center">
-                {sessionId ? (
-                  <QRCode value={sessionId} size={52} />
+              {/* QR Code — larger image once session exists (qrserver API) */}
+              <div
+                className={`relative shrink-0 overflow-hidden rounded-xl bg-white shadow-lg flex items-center justify-center ${
+                  qrSrc ? "p-2" : "h-16 w-16 p-1.5"
+                }`}
+                style={qrSrc ? { width: QR_IMAGE_SIZE + 16, minHeight: QR_IMAGE_SIZE + 16 } : undefined}
+              >
+                {qrSrc ? (
+                  <img
+                    src={qrSrc}
+                    alt="QR code to open this experience on your phone"
+                    width={QR_IMAGE_SIZE}
+                    height={QR_IMAGE_SIZE}
+                    className="rounded-lg"
+                  />
                 ) : (
-                  <div className="h-full w-full rounded-lg bg-white/20" />
+                  <div className="h-full w-full min-h-[52px] min-w-[52px] rounded-lg bg-white/20" />
                 )}
               </div>
-              <div>
+              <div className="text-center sm:text-left">
                 <p className="text-sm font-semibold text-white/90">
                   {isComplete ? 'Scan to continue' : 'Continue on your phone'}
                 </p>

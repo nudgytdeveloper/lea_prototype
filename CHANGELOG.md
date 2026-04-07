@@ -1,5 +1,13 @@
 # Changelog
 
+## 2026-04-07
+
+### Added
+- `UMBRA.md`: QR deep link (`session`), Firestore `responses` document schema, and integration checklist for partner apps
+
+### Changed
+- Completion QR code: larger image via api.qrserver.com encoding `/?session=…` (optional `NEXT_PUBLIC_APP_URL`); removed `react-qr-code`
+
 ## 2026-04-06
 
 ### Fixed
