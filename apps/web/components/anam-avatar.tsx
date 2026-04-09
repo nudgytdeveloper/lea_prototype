@@ -5,7 +5,7 @@ import { createClient, AnamEvent } from "@anam-ai/js-sdk"
 import type { AnamClient } from "@anam-ai/js-sdk"
 import { Maximize2, Minimize2, X, MessageSquareText } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { ANAM_AVATAR_AUDIO_OUTPUT_GAIN } from "@lea/constants"
+import { AI_ASSISTANT_DISPLAY_NAME, ANAM_AVATAR_AUDIO_OUTPUT_GAIN } from "@lea/constants"
 import { TranscriptPanel, type TranscriptMessage } from "./transcript-panel"
 
 interface AnamAvatarProps {
@@ -18,14 +18,14 @@ const MOCK_TRANSCRIPT_DATA: TranscriptMessage[] = [
   {
     id: "mock-1",
     role: "ai",
-    content: "Hello! I'm LEA, your AI networking assistant. I'm here to help connect you with the right people at this event.",
+    content: `Hello! I'm ${AI_ASSISTANT_DISPLAY_NAME}, your AI networking assistant. I'm here to help connect you with the right people at this event.`,
     timestamp: new Date(Date.now() - 60000),
     isNew: false,
   },
   {
     id: "mock-2", 
     role: "user",
-    content: "Hi LEA! I'm looking to meet some investors in the fintech space.",
+    content: `Hi ${AI_ASSISTANT_DISPLAY_NAME}! I'm looking to meet some investors in the fintech space.`,
     timestamp: new Date(Date.now() - 45000),
     isNew: false,
   },
@@ -189,7 +189,10 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
         // Add a new AI message after connection to show the feed is live
         if (!cancelled) {
           setTimeout(() => {
-            addMessage("ai", "Hello! I'm LEA, your AI networking assistant. How can I help you today?")
+            addMessage(
+              "ai",
+              `Hello! I'm ${AI_ASSISTANT_DISPLAY_NAME}, your AI networking assistant. How can I help you today?`
+            )
           }, 2000)
         }
       } catch (err) {
@@ -234,32 +237,37 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
     await el.requestFullscreen()
   }, [])
 
+  const transcriptToggleButton = (
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={() => setShowTranscript(!showTranscript)}
+      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+        showTranscript
+          ? "text-white"
+          : "text-white/40 hover:text-white/70"
+      }`}
+      style={{
+        background: showTranscript
+          ? "linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(6, 182, 212, 0.15) 100%)"
+          : "rgba(255, 255, 255, 0.05)",
+        border: `1px solid ${
+          showTranscript ? "rgba(168, 85, 247, 0.3)" : "rgba(255, 255, 255, 0.08)"
+        }`,
+      }}
+    >
+      <MessageSquareText className="h-4 w-4" />
+      <span>Transcript</span>
+    </motion.button>
+  )
+
   return (
     <div className="py-4 flex flex-col">
-      {/* Controls row - positioned above video */}
-      <div className="flex items-center justify-between mb-4">
-        {/* Transcript toggle */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowTranscript(!showTranscript)}
-          className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-            showTranscript
-              ? "text-white"
-              : "text-white/40 hover:text-white/70"
-          }`}
-          style={{
-            background: showTranscript
-              ? "linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(6, 182, 212, 0.15) 100%)"
-              : "rgba(255, 255, 255, 0.05)",
-            border: `1px solid ${
-              showTranscript ? "rgba(168, 85, 247, 0.3)" : "rgba(255, 255, 255, 0.08)"
-            }`,
-          }}
-        >
-          <MessageSquareText className="h-4 w-4" />
-          <span>Transcript</span>
-        </motion.button>
+      {/* Controls row - positioned above video (hidden while native fullscreen; duplicated inside fullscreen root) */}
+      <div
+        className={`flex items-center justify-between mb-4 ${isFullscreen ? "hidden" : ""}`}
+      >
+        {transcriptToggleButton}
 
         {/* Right controls */}
         <div className="flex items-center gap-1">
@@ -283,30 +291,74 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
         </div>
       </div>
 
-      {/* Main content area - VERTICAL layout: video on top, transcript below */}
-      <div 
-        ref={containerRef} 
-        className="flex flex-col"
+      {/* Main content: embedded = video + transcript column; fullscreen = full-bleed video + right overlay */}
+      <div
+        ref={containerRef}
+        className={
+          isFullscreen
+            ? "relative flex h-svh w-full max-w-[100vw] flex-col overflow-hidden bg-black"
+            : "flex flex-col"
+        }
       >
-        {/* Video container - LARGE and centered, maintaining dominant visual presence */}
+        {isFullscreen && (
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-40 flex items-start justify-between gap-2 p-3">
+            <div className="pointer-events-auto">{transcriptToggleButton}</div>
+            <div className="pointer-events-auto flex items-center gap-1">
+              <button
+                type="button"
+                onClick={handleToggleFullscreen}
+                className="rounded-full bg-black/35 p-2 text-white/80 backdrop-blur-md transition-all duration-200 hover:bg-black/50 hover:text-white"
+                aria-label="Exit full screen"
+              >
+                <Minimize2 className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleClose}
+                className="rounded-full bg-black/35 p-2 text-white/80 backdrop-blur-md transition-all duration-200 hover:bg-black/50 hover:text-white"
+                aria-label="Close chat"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Video container */}
         <div
-          className="relative w-full rounded-2xl overflow-hidden bg-black"
-          style={{
-            aspectRatio: "16 / 9",
-            boxShadow: "0 0 80px -20px rgba(168, 85, 247, 0.4), 0 0 40px -15px rgba(6, 182, 212, 0.3), 0 25px 60px -20px rgba(0, 0, 0, 0.6)",
-          }}
+          className={
+            isFullscreen
+              ? "absolute inset-0 z-0 overflow-hidden bg-black"
+              : "relative w-full overflow-hidden rounded-2xl bg-black"
+          }
+          style={
+            isFullscreen
+              ? undefined
+              : {
+                  aspectRatio: "16 / 9",
+                  boxShadow:
+                    "0 0 80px -20px rgba(168, 85, 247, 0.4), 0 0 40px -15px rgba(6, 182, 212, 0.3), 0 25px 60px -20px rgba(0, 0, 0, 0.6)",
+                }
+          }
         >
-          {/* Gradient border effect */}
-          <div
-            className="absolute -inset-px rounded-2xl z-0 pointer-events-none"
-            style={{
-              background: "linear-gradient(135deg, rgba(168, 85, 247, 0.5), rgba(6, 182, 212, 0.4), rgba(236, 72, 153, 0.4))",
-              filter: "blur(1px)",
-            }}
-          />
+          {/* Gradient border effect (embedded only) */}
+          {!isFullscreen && (
+            <div
+              className="pointer-events-none absolute -inset-px z-0 rounded-2xl"
+              style={{
+                background:
+                  "linear-gradient(135deg, rgba(168, 85, 247, 0.5), rgba(6, 182, 212, 0.4), rgba(236, 72, 153, 0.4))",
+                filter: "blur(1px)",
+              }}
+            />
+          )}
 
           {/* Inner container */}
-          <div className="relative z-10 w-full h-full rounded-2xl overflow-hidden bg-black">
+          <div
+            className={`relative z-10 h-full w-full overflow-hidden bg-black ${
+              isFullscreen ? "rounded-none" : "rounded-2xl"
+            }`}
+          >
             {/* Loading state */}
             {isLoading && !error && (
               <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
@@ -362,7 +414,7 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 10 }}
-                  className="absolute bottom-5 left-5 flex items-center gap-2.5 px-4 py-2 rounded-full"
+                  className="absolute bottom-5 left-5 flex items-center gap-2.5 rounded-full px-4 py-2"
                   style={{
                     background: "rgba(0, 0, 0, 0.6)",
                     backdropFilter: "blur(12px)",
@@ -381,27 +433,40 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
           </div>
         </div>
 
-        {/* Transcript Panel - BELOW video, full width, integrated design */}
+        {/* Transcript: below video when embedded; right glass overlay when fullscreen */}
         <AnimatePresence>
           {showTranscript && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: isFullscreen ? 0 : -10 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
+              exit={{ opacity: 0, y: isFullscreen ? 0 : -10 }}
               transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
-              className="mt-4 w-full"
+              className={
+                isFullscreen
+                  ? "pointer-events-none absolute inset-y-0 right-0 z-30 flex w-[min(400px,42vw)] min-w-0 max-w-[min(400px,90vw)] flex-col py-3 pl-2 pr-3 pt-14"
+                  : "mt-4 w-full"
+              }
             >
-              <TranscriptPanel
-                messages={messages}
-                isAiSpeaking={isAiSpeaking}
-              />
+              <div
+                className={
+                  isFullscreen
+                    ? "pointer-events-auto flex h-full min-h-0 flex-1 flex-col"
+                    : undefined
+                }
+              >
+                <TranscriptPanel
+                  messages={messages}
+                  isAiSpeaking={isAiSpeaking}
+                  variant={isFullscreen ? "overlay" : "default"}
+                />
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* End chat button - below everything with proper spacing */}
-      {!isLoading && !error && (
+      {/* End chat button - below everything with proper spacing (not inside fullscreen root) */}
+      {!isLoading && !error && !isFullscreen && (
         <motion.button
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}

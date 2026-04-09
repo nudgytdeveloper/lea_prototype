@@ -3,6 +3,8 @@
 ## 2026-04-09
 
 ### Changed
+- Live transcript AI speaker label and greetings use `Nudgyt AI` (`AI_ASSISTANT_DISPLAY_NAME` in `@lea/constants`) instead of LEA
+- Anam avatar fullscreen chat: video fills the screen; live transcript is a semi-transparent right-side overlay; in-fullscreen controls for transcript, exit fullscreen, and close
 - Anam avatar chat: louder persona audio via Web Audio output gain (`ANAM_AVATAR_AUDIO_OUTPUT_GAIN` in `@lea/constants`)
 
 ## 2026-04-07

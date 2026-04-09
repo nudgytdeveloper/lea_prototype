@@ -1,5 +1,6 @@
 "use client"
 
+import { AI_ASSISTANT_DISPLAY_NAME } from "@lea/constants"
 import { useEffect, useMemo, useRef, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Bot, User } from "lucide-react"
@@ -12,10 +13,14 @@ export interface TranscriptMessage {
   isNew?: boolean
 }
 
+type TranscriptPanelVariant = "default" | "overlay"
+
 interface TranscriptPanelProps {
   messages: TranscriptMessage[]
   isAiSpeaking?: boolean
   className?: string
+  /** Fullscreen right-rail: taller, more transparent glass over video */
+  variant?: TranscriptPanelVariant
 }
 
 // Typing indicator component
@@ -138,7 +143,7 @@ function ChatBubble({ message }: { message: TranscriptMessage }) {
             <p className={`relative z-10 text-[11px] font-semibold uppercase tracking-wider mb-1.5 ${
               isUser ? "text-pink-300/60" : "text-purple-300/60"
             }`}>
-              {isUser ? "You" : "LEA"}
+              {isUser ? "You" : AI_ASSISTANT_DISPLAY_NAME}
             </p>
 
             {/* Content */}
@@ -166,7 +171,9 @@ export function TranscriptPanel({
   messages,
   isAiSpeaking = false,
   className = "",
+  variant = "default",
 }: TranscriptPanelProps) {
+  const isOverlay = variant === "overlay"
   const scrollRef = useRef<HTMLDivElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const [isScrolledToBottom, setIsScrolledToBottom] = useState(true)
@@ -200,14 +207,19 @@ export function TranscriptPanel({
     }
   }
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: 20 }}
-      transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-      className={`relative flex flex-col w-full overflow-hidden rounded-2xl ${className}`}
-      style={{
+  const panelStyle = isOverlay
+    ? {
+        background:
+          "linear-gradient(180deg, rgba(10, 10, 18, 0.35) 0%, rgba(10, 10, 18, 0.22) 100%)",
+        backdropFilter: "blur(28px)",
+        WebkitBackdropFilter: "blur(28px)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+        boxShadow:
+          "0 12px 40px -12px rgba(0, 0, 0, 0.45), inset 0 1px 0 0 rgba(255, 255, 255, 0.06)",
+        minHeight: 0,
+        maxHeight: "none" as const,
+      }
+    : {
         background:
           "linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.02) 100%)",
         backdropFilter: "blur(40px)",
@@ -217,7 +229,18 @@ export function TranscriptPanel({
           "0 25px 50px -12px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 rgba(255, 255, 255, 0.08)",
         minHeight: "180px",
         maxHeight: "260px",
-      }}
+      }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: isOverlay ? 12 : 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: isOverlay ? 12 : 20 }}
+      transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+      className={`relative flex flex-col w-full overflow-hidden rounded-2xl ${
+        isOverlay ? "h-full min-h-0 flex-1" : ""
+      } ${className}`}
+      style={panelStyle}
     >
       {/* Header bar */}
       <div
