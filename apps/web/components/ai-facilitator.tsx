@@ -298,7 +298,13 @@ export function AIFacilitator() {
       />
 
       {/* Main content container */}
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-8 py-16">
+      <div
+        className={`relative z-10 flex min-h-screen flex-col items-center ${
+          isChatting && anamToken
+            ? "justify-start px-4 pb-5 pt-16 md:px-6"
+            : "justify-center px-8 py-16"
+        }`}
+      >
         
         {/* Nudgyt Logo - Top left, small brand mark */}
         <div className="absolute top-5 left-6 z-20">
@@ -314,7 +320,13 @@ export function AIFacilitator() {
         </div>
 
         {/* Central Content Layout */}
-        <div className="flex w-full max-w-3xl flex-col items-center">
+        <div
+          className={`flex w-full flex-col items-center ${
+            isChatting && anamToken
+              ? "max-w-[min(1280px,calc(100vw-2rem))]"
+              : "max-w-3xl"
+          }`}
+        >
           
           {/* ========== GLASSMORPHISM QUESTION CARD ========== */}
           <div className="relative w-full">
@@ -330,7 +342,9 @@ export function AIFacilitator() {
             {/* Main glassmorphism card */}
             <div 
               ref={cardRef}
-              className="relative rounded-[2rem] p-10 md:p-12 overflow-hidden"
+              className={`relative rounded-[2rem] overflow-hidden ${
+                isChatting && anamToken ? "p-4 md:p-5" : "p-10 md:p-12"
+              }`}
               style={{
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.02) 100%)',
                 backdropFilter: 'blur(40px)',
@@ -472,7 +486,9 @@ export function AIFacilitator() {
                   </>
                 ) : isChatting && anamToken ? (
                   /* ========== AVATAR CHAT STATE ========== */
-                  <AnamAvatar sessionToken={anamToken} onClose={handleCloseChat} />
+                  <div className="flex max-h-[calc(100svh-5.5rem)] min-h-0 w-full flex-col">
+                    <AnamAvatar sessionToken={anamToken} onClose={handleCloseChat} />
+                  </div>
                 ) : (
                   /* ========== COMPLETION STATE ========== */
                   <div className="text-center py-4">
@@ -537,7 +553,11 @@ export function AIFacilitator() {
           {/* ========== QR CODE SECTION ========== */}
           <div
             className={`mt-12 transition-all duration-500 ${
-              isChatting ? 'opacity-0 scale-95 pointer-events-none' : isComplete ? 'scale-105 opacity-100' : 'scale-100 opacity-100'
+              isChatting
+                ? "hidden"
+                : isComplete
+                  ? "scale-105 opacity-100"
+                  : "scale-100 opacity-100"
             }`}
           >
             <div 

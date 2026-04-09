@@ -3,6 +3,8 @@
 ## 2026-04-09
 
 ### Changed
+- Anam embedded chat: layout fits one viewport (no page scroll)—QR row hidden while chatting, tighter padding, capped 16:9 video height via `100svh`, compact end-conversation control
+- Anam embedded chat: wider column while chatting; live transcript is a right-side glass overlay on the video (same `overlay` variant as fullscreen)
 - Live transcript AI speaker label and greetings use `Nudgyt AI` (`AI_ASSISTANT_DISPLAY_NAME` in `@lea/constants`) instead of LEA
 - Anam avatar fullscreen chat: video fills the screen; live transcript is a semi-transparent right-side overlay; in-fullscreen controls for transcript, exit fullscreen, and close
 - Anam avatar chat: louder persona audio via Web Audio output gain (`ANAM_AVATAR_AUDIO_OUTPUT_GAIN` in `@lea/constants`)
