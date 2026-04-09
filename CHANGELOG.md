@@ -1,5 +1,10 @@
 # Changelog
 
+## 2026-04-09
+
+### Changed
+- Anam avatar chat: louder persona audio via Web Audio output gain (`ANAM_AVATAR_AUDIO_OUTPUT_GAIN` in `@lea/constants`)
+
 ## 2026-04-07
 
 ### Added

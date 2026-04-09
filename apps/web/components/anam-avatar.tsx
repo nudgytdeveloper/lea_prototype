@@ -5,6 +5,7 @@ import { createClient, AnamEvent } from "@anam-ai/js-sdk"
 import type { AnamClient } from "@anam-ai/js-sdk"
 import { Maximize2, Minimize2, X, MessageSquareText } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
+import { ANAM_AVATAR_AUDIO_OUTPUT_GAIN } from "@lea/constants"
 import { TranscriptPanel, type TranscriptMessage } from "./transcript-panel"
 
 interface AnamAvatarProps {
@@ -57,11 +58,49 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
   const [isAiSpeaking, setIsAiSpeaking] = useState(false)
   const messageIdRef = useRef(MOCK_TRANSCRIPT_DATA.length)
   const processedMessagesRef = useRef<Set<string>>(new Set())
+  const audioBoostCtxRef = useRef<AudioContext | null>(null)
+
+  const teardownAudioBoost = useCallback(() => {
+    const video = document.getElementById("anam-video") as HTMLVideoElement | null
+    if (video) video.volume = 1
+    const ctx = audioBoostCtxRef.current
+    if (ctx) {
+      audioBoostCtxRef.current = null
+      void ctx.close()
+    }
+  }, [])
+
+  const attachAudioBoost = useCallback(
+    (audioStream: MediaStream) => {
+      teardownAudioBoost()
+      if (ANAM_AVATAR_AUDIO_OUTPUT_GAIN <= 1) return
+      const video = document.getElementById("anam-video") as HTMLVideoElement | null
+      if (video && audioStream === video.srcObject) {
+        video.volume = 0
+      }
+      const ctx = new AudioContext()
+      audioBoostCtxRef.current = ctx
+      try {
+        const source = ctx.createMediaStreamSource(audioStream)
+        const gainNode = ctx.createGain()
+        gainNode.gain.value = ANAM_AVATAR_AUDIO_OUTPUT_GAIN
+        source.connect(gainNode)
+        gainNode.connect(ctx.destination)
+        void ctx.resume()
+      } catch {
+        void ctx.close()
+        audioBoostCtxRef.current = null
+        if (video) video.volume = 1
+      }
+    },
+    [teardownAudioBoost]
+  )
 
   const cleanup = useCallback(async () => {
     if (cleaningUpRef.current) return
     cleaningUpRef.current = true
     try {
+      teardownAudioBoost()
       const client = clientRef.current
       if (client) {
         clientRef.current = null
@@ -75,7 +114,7 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
     } finally {
       cleaningUpRef.current = false
     }
-  }, [])
+  }, [teardownAudioBoost])
 
   // Add message helper - prevents duplicates
   const addMessage = useCallback((role: "user" | "ai", content: string) => {
@@ -115,7 +154,11 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
 
         client.addListener(AnamEvent.VIDEO_PLAY_STARTED, markReady)
         client.addListener(AnamEvent.VIDEO_STREAM_STARTED, markReady)
-        client.addListener(AnamEvent.AUDIO_STREAM_STARTED, markReady)
+        client.addListener(AnamEvent.AUDIO_STREAM_STARTED, (audioStream) => {
+          if (cancelled) return
+          attachAudioBoost(audioStream)
+          markReady()
+        })
 
         // Listen for transcript events
         client.addListener(AnamEvent.MESSAGE_HISTORY_UPDATED, (history) => {
@@ -165,7 +208,7 @@ export function AnamAvatar({ sessionToken, onClose }: AnamAvatarProps) {
       initRef.current = false
       cleanup()
     }
-  }, [sessionToken, cleanup, addMessage])
+  }, [sessionToken, cleanup, addMessage, attachAudioBoost])
 
   useEffect(() => {
     const update = () => setIsFullscreen(Boolean(document.fullscreenElement))
