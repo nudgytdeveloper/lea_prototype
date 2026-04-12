@@ -595,10 +595,20 @@ export function AIFacilitator() {
                 )}
               </div>
               <div className="text-center sm:text-left">
-                <p className="text-sm font-semibold text-white/90">
+                <p
+                  className={`font-semibold text-white/90 ${
+                    isComplete ? 'text-xl sm:text-2xl tracking-tight' : 'text-sm'
+                  }`}
+                >
                   {isComplete ? 'Scan to continue' : 'Continue on your phone'}
                 </p>
-                <p className="text-xs text-white/40 mt-0.5">
+                <p
+                  className={`mt-1 ${
+                    isComplete
+                      ? 'text-sm text-white/50 sm:text-base'
+                      : 'text-xs text-white/40 mt-0.5'
+                  }`}
+                >
                   {isComplete ? 'Your personalized experience awaits' : 'Scan to open mobile experience'}
                 </p>
               </div>

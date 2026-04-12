@@ -3,6 +3,7 @@
 ## 2026-04-09
 
 ### Changed
+- Completion QR row: larger “Scan to continue” headline and subtext so they read clearly next to the QR image
 - Anam embedded chat: layout fits one viewport (no page scroll)—QR row hidden while chatting, tighter padding, capped 16:9 video height via `100svh`, compact end-conversation control
 - Anam embedded chat: wider column while chatting; live transcript is a right-side glass overlay on the video (same `overlay` variant as fullscreen)
 - Live transcript AI speaker label and greetings use `Nudgyt AI` (`AI_ASSISTANT_DISPLAY_NAME` in `@lea/constants`) instead of LEA
